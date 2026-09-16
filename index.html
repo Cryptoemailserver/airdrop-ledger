@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Airdrop-Ledger (Copy)</title>
+<style>
+  :root {
+    --ink: #141B24;
+    --ink-2: #1C2530;
+    --ink-3: #26313f;
+    --paper: #EDE7DA;
+    --paper-dim: #b9b2a2;
+    --brass: #C08A3E;
+    --brass-bright: #D9A65C;
+    --sage: #7A9B76;
+    --sage-bright: #93B98D;
+    --rule: #34404e;
+    --danger: #b06a5a;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--ink);
+    color: var(--paper);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+  }
+
+  .serif {
+    font-family: Georgia, "Times New Roman", serif;
+  }
+
+  .wrap {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 28px 18px 100px;
+  }
+
+  header.top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 22px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  header.top h1 {
+    font-size: 1.4rem;
+    margin: 0;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+
+  header.top .sub {
+    font-size: 0.8rem;
+    color: var(--paper-dim);
+    margin-top: 4px;
+  }
+
+  .summary {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 26px;
+  }
+
+  .summary .cell {
+    flex: 1;
+    background: var(--ink-2);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    padding: 14px 12px;
+    text-align: center;
+  }
+
+  .summary .cell .num {
+    font-size: 1.9rem;
+    color: var(--brass-bright);
+    line-height: 1;
+  }
+
+  .summary .cell .label {
+    font-size: 0.7rem;
+    color: var(--paper-dim);
+    margin-top: 6px;
+  }
+
+  .cards {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .card {
+    background: var(--ink-2);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    padding: 16px 16px 14px;
+    position: relative;
+    transition: border-color 0.2s ease;
+  }
+
+  .card.done-today {
+    border-color: var(--sage);
+  }
+
+  .card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .card-name {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--paper);
+    word-break: break-word;
+  }
+
+  .card-name a {
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px dotted var(--paper-dim);
+  }
+
+  .card-status {
+    font-size: 0.68rem;
+    padding: 2px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+    border: 1px solid var(--rule);
+    color: var(--paper-dim);
+    margin-top: 2px;
+  }
+
+  .card-status.active { color: var(--sage-bright); border-color: var(--sage); }
+  .card-status.paused { color: var(--brass-bright); border-color: var(--brass); }
+  .card-status.done { color: var(--paper-dim); border-color: var(--rule); }
+
+  .streak-row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .streak-num {
+    font-size: 2.1rem;
+    color: var(--brass-bright);
+    line-height: 1;
+  }
+
+  .streak-label {
+    font-size: 0.75rem;
+    color: var(--paper-dim);
+  }
+
+  .card-notes {
+    font-size: 0.82rem;
+    color: var(--paper-dim);
+    margin-top: 8px;
+    white-space: pre-wrap;
+  }
+
+  .card-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+  }
+
+  button {
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    border-radius: 5px;
+    padding: 9px 14px;
+    font-size: 0.85rem;
+  }
+
+  .btn-checkin {
+    background: var(--sage);
+    color: #0e1510;
+    font-weight: 600;
+    flex: 1;
+  }
+
+  .btn-checkin:disabled {
+    background: var(--ink-3);
+    color: var(--paper-dim);
+    cursor: default;
+  }
+
+  .btn-checkin:active:not(:disabled) { transform: scale(0.98); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--paper-dim);
+    border: 1px solid var(--rule);
+  }
+
+  .btn-ghost:hover { color: var(--paper); border-color: var(--paper-dim); }
+
+  .btn-danger-ghost {
+    background: transparent;
+    color: var(--danger);
+    border: 1px solid var(--rule);
+    padding: 9px 12px;
+  }
+
+  .empty {
+    text-align: center;
+    color: var(--paper-dim);
+    padding: 40px 10px;
+    font-size: 0.9rem;
+    border: 1px dashed var(--rule);
+    border-radius: 6px;
+  }
+
+  .fab {
+    position: fixed;
+    bottom: 22px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(604px, calc(100% - 36px));
+  }
+
+  .fab button {
+    width: 100%;
+    background: var(--brass);
+    color: #1a1204;
+    font-weight: 600;
+    font-size: 0.95rem;
+    padding: 13px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+  }
+
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(10,13,17,0.72);
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 20;
+  }
+
+  .modal-backdrop.open { display: flex; }
+
+  .modal {
+    background: var(--ink-2);
+    border: 1px solid var(--rule);
+    border-radius: 10px 10px 0 0;
+    width: 100%;
+    max-width: 640px;
+    padding: 20px 18px 26px;
+    max-height: 88vh;
+    overflow-y: auto;
+  }
+
+  .modal h2 {
+    margin: 0 0 16px;
+    font-size: 1.1rem;
+  }
+
+  .field { margin-bottom: 14px; }
+
+  .field label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--paper-dim);
+    margin-bottom: 5px;
+  }
+
+  .field input, .field select, .field textarea {
+    width: 100%;
+    background: var(--ink);
+    border: 1px solid var(--rule);
+    border-radius: 5px;
+    color: var(--paper);
+    padding: 9px 10px;
+    font-size: 0.9rem;
+    font-family: inherit;
+  }
+
+  .field textarea { resize: vertical; min-height: 60px; }
+
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+  }
+
+  .modal-actions button { flex: 1; }
+
+  .btn-save {
+    background: var(--brass);
+    color: #1a1204;
+    font-weight: 600;
+  }
+
+  .status-note {
+    text-align: center;
+    font-size: 0.72rem;
+    color: var(--paper-dim);
+    margin-top: 20px;
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1 class="serif">Airdrop-Ledger</h1>
+      <div class="sub">Täglicher Check-in, ein Blick reicht</div>
+    </div>
+  </header>
+
+  <div class="summary">
+    <div class="cell">
+      <div class="num serif" id="stat-active">–</div>
+      <div class="label">aktiv</div>
+    </div>
+    <div class="cell">
+      <div class="num serif" id="stat-longest">–</div>
+      <div class="label">längster Streak</div>
+    </div>
+    <div class="cell">
+      <div class="num serif" id="stat-today">–</div>
+      <div class="label">heute erledigt</div>
+    </div>
+  </div>
+
+  <div class="cards" id="cards">
+    <div class="empty">Lädt …</div>
+  </div>
+</div>
+
+<div class="fab">
+  <button id="btn-add">+ Airdrop hinzufügen</button>
+</div>
+
+<div class="modal-backdrop" id="modal-backdrop">
+  <div class="modal">
+    <h2 id="modal-title" class="serif">Airdrop hinzufügen</h2>
+    <div class="field">
+      <label for="f-name">Name</label>
+      <input type="text" id="f-name" placeholder="z. B. LayerZero Testnet">
+    </div>
+    <div class="field">
+      <label for="f-url">Link (optional)</label>
+      <input type="text" id="f-url" placeholder="https://...">
+    </div>
+    <div class="field">
+      <label for="f-status">Status</label>
+      <select id="f-status">
+        <option value="active">Aktiv</option>
+        <option value="paused">Pausiert</option>
+        <option value="done">Abgeschlossen</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="f-notes">Notizen (optional)</label>
+      <textarea id="f-notes" placeholder="Wallet, Besonderheiten, Ansprüche ..."></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="btn-cancel">Abbrechen</button>
+      <button class="btn-danger-ghost" id="btn-delete" style="display:none;">Löschen</button>
+      <button class="btn-save" id="btn-save">Speichern</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="status-note" id="status-note"></div>
+</div>
+
+<script>
+const STORAGE_KEY = 'airdrop-ledger-data';
+let airdrops = []; // {id, name, url, status, notes, streak, lastCheckin}
+let editingId = null;
+
+function loadFromStorage() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveToStorage() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(airdrops));
+  } catch (e) {
+    setStatus('Speichern fehlgeschlagen (Browser-Speicher voll?).');
+  }
+}
+
+function makeId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function yesterdayStr() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function statusLabel(s) {
+  return { active: 'Aktiv', paused: 'Pausiert', done: 'Abgeschlossen' }[s] || s;
+}
+
+function render() {
+  const cardsEl = document.getElementById('cards');
+  if (airdrops.length === 0) {
+    cardsEl.innerHTML = '<div class="empty">Noch keine Airdrops eingetragen.<br>Leg mit "+ Airdrop hinzufügen" los.</div>';
+  } else {
+    const today = todayStr();
+    cardsEl.innerHTML = airdrops.map(a => {
+      const doneToday = a.lastCheckin === today;
+      return `
+        <div class="card ${doneToday ? 'done-today' : ''}" data-id="${a.id}">
+          <div class="card-top">
+            <div>
+              <div class="card-name">${a.url ? `<a href="${escapeAttr(a.url)}" target="_blank" rel="noopener">${escapeHtml(a.name)}</a>` : escapeHtml(a.name)}</div>
+            </div>
+            <div class="card-status ${a.status}">${statusLabel(a.status)}</div>
+          </div>
+          <div class="streak-row">
+            <div class="streak-num serif">${a.streak || 0}</div>
+            <div class="streak-label">Tage in Folge${a.lastCheckin ? ' · zuletzt ' + a.lastCheckin : ''}</div>
+          </div>
+          ${a.notes ? `<div class="card-notes">${escapeHtml(a.notes)}</div>` : ''}
+          <div class="card-actions">
+            <button class="btn-checkin" data-action="checkin" ${doneToday ? 'disabled' : ''}>${doneToday ? 'Heute erledigt ✓' : 'Heute erledigt'}</button>
+            <button class="btn-ghost" data-action="edit">Bearbeiten</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  document.getElementById('stat-active').textContent = airdrops.filter(a => a.status === 'active').length;
+  document.getElementById('stat-longest').textContent = airdrops.reduce((m, a) => Math.max(m, a.streak || 0), 0);
+  document.getElementById('stat-today').textContent = airdrops.filter(a => a.lastCheckin === todayStr()).length;
+}
+
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escapeAttr(s) {
+  return escapeHtml(s);
+}
+
+function loadData() {
+  airdrops = loadFromStorage().sort((a,b) => (b.streak||0) - (a.streak||0));
+  render();
+  setStatus('');
+}
+
+function setStatus(msg) {
+  document.getElementById('status-note').textContent = msg;
+}
+
+function openModal(existing) {
+  editingId = existing ? existing.id : null;
+  document.getElementById('modal-title').textContent = existing ? 'Airdrop bearbeiten' : 'Airdrop hinzufügen';
+  document.getElementById('f-name').value = existing ? existing.name : '';
+  document.getElementById('f-url').value = existing ? (existing.url || '') : '';
+  document.getElementById('f-status').value = existing ? existing.status : 'active';
+  document.getElementById('f-notes').value = existing ? (existing.notes || '') : '';
+  document.getElementById('btn-delete').style.display = existing ? 'block' : 'none';
+  document.getElementById('modal-backdrop').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modal-backdrop').classList.remove('open');
+  editingId = null;
+}
+
+function saveModal() {
+  const name = document.getElementById('f-name').value.trim();
+  if (!name) { document.getElementById('f-name').focus(); return; }
+  const data = {
+    name,
+    url: document.getElementById('f-url').value.trim(),
+    status: document.getElementById('f-status').value,
+    notes: document.getElementById('f-notes').value.trim(),
+  };
+  try {
+    if (editingId) {
+      const idx = airdrops.findIndex(a => a.id === editingId);
+      if (idx !== -1) airdrops[idx] = { ...airdrops[idx], ...data };
+    } else {
+      data.id = makeId();
+      data.streak = 0;
+      data.lastCheckin = null;
+      airdrops.push(data);
+    }
+    saveToStorage();
+    closeModal();
+    loadData();
+  } catch (e) {
+    setStatus('Speichern fehlgeschlagen.');
+  }
+}
+
+function deleteCurrent() {
+  if (!editingId) return;
+  try {
+    airdrops = airdrops.filter(a => a.id !== editingId);
+    saveToStorage();
+    closeModal();
+    loadData();
+  } catch (e) {
+    setStatus('Löschen fehlgeschlagen.');
+  }
+}
+
+function checkin(id) {
+  const a = airdrops.find(x => x.id === id);
+  if (!a) return;
+  const today = todayStr();
+  if (a.lastCheckin === today) return;
+  a.streak = (a.lastCheckin === yesterdayStr()) ? (a.streak || 0) + 1 : 1;
+  a.lastCheckin = today;
+  try {
+    saveToStorage();
+    loadData();
+  } catch (e) {
+    setStatus('Check-in fehlgeschlagen.');
+  }
+}
+
+document.getElementById('cards').addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-action]');
+  if (!btn) return;
+  const card = e.target.closest('.card');
+  const id = card.dataset.id;
+  if (btn.dataset.action === 'checkin') checkin(id);
+  if (btn.dataset.action === 'edit') openModal(airdrops.find(a => a.id === id));
+});
+
+document.getElementById('btn-add').addEventListener('click', () => openModal(null));
+document.getElementById('btn-cancel').addEventListener('click', closeModal);
+document.getElementById('btn-save').addEventListener('click', saveModal);
+document.getElementById('btn-delete').addEventListener('click', deleteCurrent);
+document.getElementById('modal-backdrop').addEventListener('click', (e) => {
+  if (e.target.id === 'modal-backdrop') closeModal();
+});
+
+function init() {
+  loadData();
+}
+
+init();
+</script>
+
+</body>
+</html>
